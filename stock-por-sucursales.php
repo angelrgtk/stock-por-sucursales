@@ -36,6 +36,7 @@ require_once STOCK_SUCURSALES_PLUGIN_DIR . 'includes/class-assets-manager.php';
 require_once STOCK_SUCURSALES_PLUGIN_DIR . 'includes/class-stock-api.php';
 require_once STOCK_SUCURSALES_PLUGIN_DIR . 'includes/class-sucursal-selector.php';
 require_once STOCK_SUCURSALES_PLUGIN_DIR . 'includes/class-admin-product-fields.php';
+require_once STOCK_SUCURSALES_PLUGIN_DIR . 'includes/class-admin-pages.php';
 require_once STOCK_SUCURSALES_PLUGIN_DIR . 'includes/class-frontend-filters.php';
 
 // Register activation and deactivation hooks
@@ -60,6 +61,7 @@ class Stock_Por_Sucursales
     private $stock_api;
     private $sucursal_selector;
     private $admin_product_fields;
+    private $admin_pages;
     private $frontend_filters;
 
     /**
@@ -112,6 +114,7 @@ class Stock_Por_Sucursales
 
         // Admin modules
         $this->admin_product_fields = new Stock_Sucursales_Admin_Product_Fields($this->stock_api);
+        $this->admin_pages = new Stock_Sucursales_Admin_Pages();
 
         // Frontend modules
         $this->frontend_filters = new Stock_Sucursales_Frontend_Filters($this);
