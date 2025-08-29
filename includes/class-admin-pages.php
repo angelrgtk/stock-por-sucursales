@@ -187,28 +187,6 @@ class Stock_Sucursales_Admin_Pages
             </div>
 
             <div class="card">
-                <h2 class="title"><?php _e('🏷️ Formatear SKUs', 'stock-sucursales'); ?></h2>
-
-                <div class="inside">
-                    <p><?php _e('Formatea todos los SKUs de productos para que tengan exactamente 6 dígitos, agregando ceros a la izquierda cuando sea necesario. Esta función es útil para sincronizar con sistemas externos que requieren SKUs con formato específico.', 'stock-sucursales'); ?></p>
-                    <p><strong><?php _e('Ejemplos:', 'stock-sucursales'); ?></strong></p>
-                    <ul style="margin-left: 20px;">
-                        <li>64 → 000064</li>
-                        <li>1 → 000001</li>
-                        <li>213 → 000213</li>
-                        <li>610291 → 610291 (sin cambios)</li>
-                    </ul>
-
-                    <button type="button" id="format-skus-btn" class="button button-secondary" style="background-color: #f39c12; border-color: #e67e22; color: white;">
-                        <span class="dashicons dashicons-tag" style="margin-top: 3px;"></span>
-                        <?php _e('Formatear SKUs', 'stock-sucursales'); ?>
-                    </button>
-
-                    <div id="format-status" style="margin-top: 15px;"></div>
-                </div>
-            </div>
-
-            <div class="card">
                 <h2 class="title"><?php _e('📜 Logs de Sincronización', 'stock-sucursales'); ?></h2>
 
                 <div class="inside">
@@ -229,6 +207,28 @@ class Stock_Sucursales_Admin_Pages
                         <p><?php _e('No hay registros de sincronización recientes.', 'stock-sucursales'); ?></p>
                         <p><em><?php _e('Los logs aparecerán aquí después de ejecutar una sincronización.', 'stock-sucursales'); ?></em></p>
                     <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="title"><?php _e('🏷️ Formatear SKUs', 'stock-sucursales'); ?></h2>
+
+                <div class="inside">
+                    <p><?php _e('Formatea todos los SKUs de productos para que tengan exactamente 6 dígitos, agregando ceros a la izquierda cuando sea necesario. Esta función es útil para sincronizar con sistemas externos que requieren SKUs con formato específico.', 'stock-sucursales'); ?></p>
+                    <p><strong><?php _e('Ejemplos:', 'stock-sucursales'); ?></strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>64 → 000064</li>
+                        <li>1 → 000001</li>
+                        <li>213 → 000213</li>
+                        <li>610291 → 610291 (sin cambios)</li>
+                    </ul>
+
+                    <button type="button" id="format-skus-btn" class="button button-secondary" style="background-color: #f39c12; border-color: #e67e22; color: white;">
+                        <span class="dashicons dashicons-tag" style="margin-top: 3px;"></span>
+                        <?php _e('Formatear SKUs', 'stock-sucursales'); ?>
+                    </button>
+
+                    <div id="format-status" style="margin-top: 15px;"></div>
                 </div>
             </div>
 
@@ -308,6 +308,7 @@ class Stock_Sucursales_Admin_Pages
                 border: 1px solid #ccd0d4;
                 border-radius: 4px;
                 margin: 20px 0;
+                max-width: 100%;
                 box-shadow: 0 1px 1px rgba(0, 0, 0, .04);
             }
 
