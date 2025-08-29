@@ -22,6 +22,7 @@ class Stock_Sucursales_Admin_Pages
     {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('wp_ajax_sync_stock_manual', array($this, 'handle_manual_sync'));
+        add_action('wp_ajax_format_skus', array($this, 'handle_format_skus'));
         add_action('admin_post_clear_stock_logs', array($this, 'handle_clear_logs'));
     }
 
@@ -67,6 +68,64 @@ class Stock_Sucursales_Admin_Pages
 
         wp_send_json_success(array(
             'message' => 'Sincronización completada',
+            'logs' => $logs
+        ));
+    }
+
+    /**
+     * Handle format SKUs AJAX request
+     */
+    public function handle_format_skus()
+    {
+        // Verificar nonce de seguridad
+        if (!wp_verify_nonce($_POST['nonce'], 'format_skus_action')) {
+            wp_die('Error de seguridad');
+        }
+
+        // Verificar permisos
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die('No tienes permisos para realizar esta acción');
+        }
+
+        // Obtener todos los productos de WooCommerce
+        $products = wc_get_products(array(
+            'limit' => -1,
+            'status' => 'publish'
+        ));
+
+        $formatted_count = 0;
+        $logs = array();
+        $logs[] = '[' . date('Y-m-d H:i:s') . '] Iniciando formateo de SKUs...';
+        $logs[] = '[' . date('Y-m-d H:i:s') . '] Total de productos encontrados: ' . count($products);
+
+        foreach ($products as $product) {
+            $sku = $product->get_sku();
+
+            // Solo procesar si tiene SKU
+            if (!empty($sku)) {
+                // Verificar si el SKU es numérico y tiene menos de 6 dígitos
+                if (is_numeric($sku) && strlen($sku) < 6) {
+                    // Formatear a 6 dígitos con ceros a la izquierda
+                    $formatted_sku = str_pad($sku, 6, '0', STR_PAD_LEFT);
+
+                    // Actualizar el SKU del producto
+                    $product->set_sku($formatted_sku);
+                    $product->save();
+
+                    $formatted_count++;
+                    $logs[] = '[' . date('Y-m-d H:i:s') . '] Producto ID ' . $product->get_id() . ': SKU "' . $sku . '" → "' . $formatted_sku . '"';
+                }
+            }
+        }
+
+        $logs[] = '[' . date('Y-m-d H:i:s') . '] Formateo completado. Total de SKUs formateados: ' . $formatted_count;
+
+        // Guardar logs en una opción temporal
+        update_option('stock_sucursales_format_logs', $logs);
+
+        wp_send_json_success(array(
+            'message' => 'Formateo de SKUs completado. ' . $formatted_count . ' SKUs fueron formateados.',
+            'formatted_count' => $formatted_count,
             'logs' => $logs
         ));
     }
@@ -124,6 +183,28 @@ class Stock_Sucursales_Admin_Pages
                     </button>
 
                     <div id="sync-status" style="margin-top: 15px;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="title"><?php _e('🏷️ Formatear SKUs', 'stock-sucursales'); ?></h2>
+
+                <div class="inside">
+                    <p><?php _e('Formatea todos los SKUs de productos para que tengan exactamente 6 dígitos, agregando ceros a la izquierda cuando sea necesario. Esta función es útil para sincronizar con sistemas externos que requieren SKUs con formato específico.', 'stock-sucursales'); ?></p>
+                    <p><strong><?php _e('Ejemplos:', 'stock-sucursales'); ?></strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>64 → 000064</li>
+                        <li>1 → 000001</li>
+                        <li>213 → 000213</li>
+                        <li>610291 → 610291 (sin cambios)</li>
+                    </ul>
+
+                    <button type="button" id="format-skus-btn" class="button button-secondary" style="background-color: #f39c12; border-color: #e67e22; color: white;">
+                        <span class="dashicons dashicons-tag" style="margin-top: 3px;"></span>
+                        <?php _e('Formatear SKUs', 'stock-sucursales'); ?>
+                    </button>
+
+                    <div id="format-status" style="margin-top: 15px;"></div>
                 </div>
             </div>
 
@@ -271,17 +352,20 @@ class Stock_Sucursales_Admin_Pages
                 border-top: 1px solid #eee;
             }
 
-            #sync-status.loading {
+            #sync-status.loading,
+            #format-status.loading {
                 color: #0073aa;
                 font-weight: bold;
             }
 
-            #sync-status.success {
+            #sync-status.success,
+            #format-status.success {
                 color: #46b450;
                 font-weight: bold;
             }
 
-            #sync-status.error {
+            #sync-status.error,
+            #format-status.error {
                 color: #dc3232;
                 font-weight: bold;
             }
@@ -310,6 +394,7 @@ class Stock_Sucursales_Admin_Pages
 
         <script type="text/javascript">
             jQuery(document).ready(function($) {
+                // Sincronización de inventario
                 $('#sync-stock-btn').on('click', function() {
                     var $btn = $(this);
                     var $status = $('#sync-status');
@@ -359,6 +444,60 @@ class Stock_Sucursales_Admin_Pages
                             // Rehabilitar botón
                             $btn.prop('disabled', false);
                             $btn.html('<span class="dashicons dashicons-update" style="margin-top: 3px;"></span><?php _e("Sincronizar Inventario Ahora", "stock-sucursales"); ?>');
+                        }
+                    });
+                });
+
+                // Formateo de SKUs
+                $('#format-skus-btn').on('click', function() {
+                    var $btn = $(this);
+                    var $status = $('#format-status');
+
+                    // Confirmar acción
+                    if (!confirm('¿Estás seguro de que quieres formatear todos los SKUs? Esta acción modificará los SKUs existentes y no se puede deshacer.')) {
+                        return;
+                    }
+
+                    // Deshabilitar botón y mostrar loading
+                    $btn.prop('disabled', true);
+                    $btn.html('<span class="sync-spinner"></span><?php _e("Formateando SKUs...", "stock-sucursales"); ?>');
+                    $status.removeClass('success error').addClass('loading');
+                    $status.html('🏷️ Procesando productos...');
+
+                    // Hacer petición AJAX
+                    $.ajax({
+                        url: ajaxurl,
+                        type: 'POST',
+                        data: {
+                            action: 'format_skus',
+                            nonce: '<?php echo wp_create_nonce('format_skus_action'); ?>'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                $status.removeClass('loading error').addClass('success');
+                                $status.html('✅ ' + response.data.message);
+
+                                // Mostrar logs detallados
+                                if (response.data.logs && response.data.logs.length > 0) {
+                                    var logsHtml = '<div style="margin-top: 15px;"><strong>Detalles del formateo:</strong></div>';
+                                    logsHtml += '<pre style="background: #2a4a2a; padding: 15px; color: #fff; border-radius: 5px; max-height: 200px; overflow-y: auto; font-family: \'Courier New\', monospace; font-size: 12px; line-height: 1.4; margin-top: 10px;">';
+                                    logsHtml += response.data.logs.join('\n');
+                                    logsHtml += '</pre>';
+                                    $status.append(logsHtml);
+                                }
+                            } else {
+                                $status.removeClass('loading success').addClass('error');
+                                $status.html('❌ Error: ' + (response.data || 'Error desconocido'));
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            $status.removeClass('loading success').addClass('error');
+                            $status.html('❌ Error de conexión: ' + error);
+                        },
+                        complete: function() {
+                            // Rehabilitar botón
+                            $btn.prop('disabled', false);
+                            $btn.html('<span class="dashicons dashicons-tag" style="margin-top: 3px;"></span><?php _e("Formatear SKUs", "stock-sucursales"); ?>');
                         }
                     });
                 });
