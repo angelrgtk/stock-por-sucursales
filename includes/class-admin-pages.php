@@ -24,6 +24,7 @@ class Stock_Sucursales_Admin_Pages
         add_action('wp_ajax_sync_stock_manual', array($this, 'handle_manual_sync'));
         add_action('wp_ajax_format_skus', array($this, 'handle_format_skus'));
         add_action('admin_post_clear_stock_logs', array($this, 'handle_clear_logs'));
+        add_action('admin_post_save_popup_settings', array($this, 'handle_save_popup_settings'));
     }
 
     /**
@@ -131,6 +132,36 @@ class Stock_Sucursales_Admin_Pages
     }
 
     /**
+     * Handle save popup settings request
+     */
+    public function handle_save_popup_settings()
+    {
+        // Verificar nonce
+        if (!wp_verify_nonce($_POST['popup_settings_nonce'], 'save_popup_settings')) {
+            wp_die('Error de seguridad');
+        }
+
+        // Verificar permisos
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die('No tienes permisos para realizar esta acción');
+        }
+
+        // Obtener opciones actuales
+        $options = get_option('stock_sucursales_options', array());
+
+        // Actualizar el ID del popup
+        $popup_id = isset($_POST['popup_id']) ? intval($_POST['popup_id']) : '';
+        $options['popup_id'] = $popup_id;
+
+        // Guardar opciones
+        update_option('stock_sucursales_options', $options);
+
+        // Redirigir de vuelta con mensaje de éxito
+        wp_redirect(admin_url('admin.php?page=stock-sucursales&popup_saved=1'));
+        exit;
+    }
+
+    /**
      * Handle clear logs request
      */
     public function handle_clear_logs()
@@ -168,6 +199,12 @@ class Stock_Sucursales_Admin_Pages
             <?php if (isset($_GET['logs_cleared'])): ?>
                 <div class="notice notice-success is-dismissible">
                     <p><?php _e('Logs eliminados correctamente.', 'stock-sucursales'); ?></p>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($_GET['popup_saved'])): ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><?php _e('Configuración del popup guardada correctamente.', 'stock-sucursales'); ?></p>
                 </div>
             <?php endif; ?>
 
@@ -240,7 +277,14 @@ class Stock_Sucursales_Admin_Pages
 
                     <h3><?php _e('1. Selector de Sucursal', 'stock-sucursales'); ?></h3>
                     <p><strong>Shortcode:</strong> <code>[sucursal_selector]</code></p>
-                    <p><?php _e('Muestra un selector dropdown para que los usuarios puedan elegir su sucursal preferida.', 'stock-sucursales'); ?></p>
+                    <p><?php _e('Muestra un botón elegante con el nombre de la sucursal actual. Al hacer clic, abre el popup de selección de sucursales.', 'stock-sucursales'); ?></p>
+                    <p><strong><?php _e('Características:', 'stock-sucursales'); ?></strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li><?php _e('Icono de ubicación 📍', 'stock-sucursales'); ?></li>
+                        <li><?php _e('Muestra la sucursal actualmente seleccionada', 'stock-sucursales'); ?></li>
+                        <li><?php _e('Abre el popup configurado al hacer clic', 'stock-sucursales'); ?></li>
+                        <li><?php _e('Diseño responsive y moderno', 'stock-sucursales'); ?></li>
+                    </ul>
                     <p><strong><?php _e('Ejemplo de uso:', 'stock-sucursales'); ?></strong></p>
                     <pre><code>[sucursal_selector]</code></pre>
 
@@ -286,6 +330,88 @@ class Stock_Sucursales_Admin_Pages
                     <pre><code>[stock_list]</code></pre>
                     <pre><code>[stock_list product_id="123"]</code></pre>
                     <pre><code>[stock_list product_id="123" show_empty="true"]</code></pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="title"><?php _e('🎯 Configuración de Popup', 'stock-sucursales'); ?></h2>
+
+                <div class="inside">
+                    <p><?php _e('Configura el popup que se mostrará cuando los usuarios no tengan una sucursal seleccionada.', 'stock-sucursales'); ?></p>
+
+                    <?php
+                    $options = get_option('stock_sucursales_options', array());
+                    $popup_id = isset($options['popup_id']) ? $options['popup_id'] : '';
+                    ?>
+
+                    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+                        <table class="form-table">
+                            <tr>
+                                <th scope="row">
+                                    <label for="popup_id"><?php _e('ID del Popup de Elementor', 'stock-sucursales'); ?></label>
+                                </th>
+                                <td>
+                                    <input type="number" id="popup_id" name="popup_id" value="<?php echo esc_attr($popup_id); ?>" class="regular-text" />
+                                    <p class="description">
+                                        <?php _e('Ingresa el ID del popup de Elementor Pro que se mostrará cuando no hay sucursal seleccionada. Puedes encontrar el ID en Elementor → Plantillas → Popups.', 'stock-sucursales'); ?>
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <input type="hidden" name="action" value="save_popup_settings">
+                        <?php wp_nonce_field('save_popup_settings', 'popup_settings_nonce'); ?>
+
+                        <p class="submit">
+                            <button type="submit" class="button button-primary">
+                                <span class="dashicons dashicons-saved" style="margin-top: 3px;"></span>
+                                <?php _e('Guardar Configuración', 'stock-sucursales'); ?>
+                            </button>
+                        </p>
+                    </form>
+
+                    <?php if (!empty($popup_id)): ?>
+                        <div style="margin-top: 20px; padding: 15px; background: #e8f5e8; border-left: 4px solid #46b450; border-radius: 3px;">
+                            <p><strong><?php _e('✅ Popup configurado:', 'stock-sucursales'); ?></strong> ID <?php echo esc_html($popup_id); ?></p>
+                            <p><?php _e('El popup se mostrará automáticamente cuando los usuarios visiten el sitio sin tener una sucursal seleccionada.', 'stock-sucursales'); ?></p>
+                        </div>
+                    <?php else: ?>
+                        <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 3px;">
+                            <p><strong><?php _e('⚠️ Popup no configurado', 'stock-sucursales'); ?></strong></p>
+                            <p><?php _e('Para activar la funcionalidad de popup, ingresa el ID del popup de Elementor Pro arriba.', 'stock-sucursales'); ?></p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="title"><?php _e('🔗 API de Selección de Sucursal', 'stock-sucursales'); ?></h2>
+
+                <div class="inside">
+                    <p><?php _e('Puedes usar enlaces directos para que los usuarios seleccionen una sucursal específica automáticamente.', 'stock-sucursales'); ?></p>
+
+                    <h3><?php _e('Endpoint disponible:', 'stock-sucursales'); ?></h3>
+                    <pre><code><?php echo home_url(); ?>/wp-json/stock-sucursales/v1/select-sucursal?selected_sucursal={slug}</code></pre>
+
+                    <h3><?php _e('Parámetros:', 'stock-sucursales'); ?></h3>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>selected_sucursal</strong> (requerido): <?php _e('Slug de la sucursal a seleccionar', 'stock-sucursales'); ?></li>
+                        <li><strong>redirect_to</strong> (opcional): <?php _e('URL de redirección personalizada', 'stock-sucursales'); ?></li>
+                    </ul>
+
+                    <h3><?php _e('Ejemplos de uso:', 'stock-sucursales'); ?></h3>
+                    <pre><code><?php echo home_url(); ?>/wp-json/stock-sucursales/v1/select-sucursal?selected_sucursal=stock_espana</code></pre>
+                    <pre><code><?php echo home_url(); ?>/wp-json/stock-sucursales/v1/select-sucursal?selected_sucursal=stock_sanber&redirect_to=<?php echo urlencode(home_url('/tienda')); ?></code></pre>
+
+                    <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-left: 4px solid #00a0d2; border-radius: 3px;">
+                        <p><strong><?php _e('💡 Funcionalidad:', 'stock-sucursales'); ?></strong></p>
+                        <ul style="margin-left: 20px; margin-bottom: 0;">
+                            <li><?php _e('Guarda la selección en cookie (30 días)', 'stock-sucursales'); ?></li>
+                            <li><?php _e('Guarda en perfil de usuario si está logueado', 'stock-sucursales'); ?></li>
+                            <li><?php _e('Redirige a la página de origen o URL personalizada', 'stock-sucursales'); ?></li>
+                            <li><?php _e('Valida que la sucursal exista antes de guardar', 'stock-sucursales'); ?></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 

@@ -31,29 +31,83 @@ class Stock_Sucursales_Sucursal_Selector
     {
         $options = get_option('stock_sucursales_options', array());
         $sucursales = isset($options['sucursales']) ? $options['sucursales'] : array();
+        $popup_id = isset($options['popup_id']) ? $options['popup_id'] : '';
 
         if (empty($sucursales)) {
             return '';
         }
 
+        // Get current selection
         $selected_sucursal = $this->get_selected_sucursal();
-        $current_url = home_url($_SERVER['REQUEST_URI']);
+        $selected_name = '';
+
+        if (!empty($selected_sucursal) && isset($sucursales[$selected_sucursal])) {
+            $selected_name = $sucursales[$selected_sucursal];
+        }
 
         ob_start();
 ?>
-        <form method="post" action="<?php echo esc_url($current_url); ?>" style="display: inline;">
-            <select name="selected_sucursal" onchange="this.form.submit()">
-                <option value=""><?php _e('Seleccionar Sucursal', 'stock-sucursales'); ?></option>
-                <?php foreach ($sucursales as $slug => $name): ?>
-                    <option value="<?php echo esc_attr($slug); ?>" <?php selected($selected_sucursal, $slug); ?>>
-                        <?php echo esc_html($name); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <?php wp_nonce_field('select_sucursal_action', 'sucursal_nonce'); ?>
-            <input type="hidden" name="action" value="select_sucursal">
-            <input type="hidden" name="redirect_to" value="<?php echo esc_url($current_url); ?>">
-        </form>
+        <button type="button" class="sucursal-selector-btn" onclick="openSucursalPopup()">
+            <svg class="sucursal-icon" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+                <path d="M64 1C38.8 1 18.3 21.2 18.3 46S64 127 64 127s45.7-56.2 45.7-81S89.2 1 64 1zm0 73.9c-16.6 0-30-13.2-30-29.5C34 29 47.4 15.8 64 15.8S94 29 94 45.3 80.6 74.9 64 74.9z" />
+            </svg>
+            <span class="sucursal-text">
+                <?php if (!empty($selected_name)): ?>
+                    <?php echo esc_html($selected_name); ?>
+                <?php else: ?>
+                    <?php _e('Seleccionar Sucursal', 'stock-sucursales'); ?>
+                <?php endif; ?>
+            </span>
+        </button>
+
+        <style>
+            .sucursal-selector-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-family: inherit;
+                font-size: inherit;
+                color: inherit;
+                padding: 0;
+                margin: 0;
+            }
+
+            .sucursal-icon {
+                width: 16px;
+                height: 16px;
+                fill: currentColor;
+                flex-shrink: 0;
+            }
+
+            .sucursal-text {
+                white-space: nowrap;
+            }
+        </style>
+
+        <script>
+            function openSucursalPopup() {
+                <?php if (!empty($popup_id)): ?>
+                    // Check if Elementor Pro frontend is available
+                    if (typeof elementorProFrontend !== 'undefined' &&
+                        elementorProFrontend.modules &&
+                        elementorProFrontend.modules.popup) {
+
+                        elementorProFrontend.modules.popup.showPopup({
+                            id: <?php echo intval($popup_id); ?>
+                        });
+
+                    } else {
+                        console.log('Elementor Pro popup module not available');
+                        alert('<?php _e("Por favor configura el ID del popup en el panel de administración.", "stock-sucursales"); ?>');
+                    }
+                <?php else: ?>
+                    alert('<?php _e("Por favor configura el ID del popup en el panel de administración.", "stock-sucursales"); ?>');
+                <?php endif; ?>
+            }
+        </script>
 <?php
         return ob_get_clean();
     }

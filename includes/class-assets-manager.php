@@ -65,5 +65,30 @@ class Stock_Sucursales_Assets_Manager
             array(),
             STOCK_SUCURSALES_VERSION
         );
+
+        // Enqueue popup detection script
+        wp_enqueue_script(
+            'stock-sucursales-popup',
+            STOCK_SUCURSALES_PLUGIN_URL . 'assets/popup-detection.js',
+            array('jquery'),
+            STOCK_SUCURSALES_VERSION,
+            true
+        );
+
+        // Get selected sucursal
+        $sucursal_selector = stock_por_sucursales()->get_sucursal_selector();
+        $selected_sucursal = $sucursal_selector->get_selected_sucursal();
+
+        // Get plugin options
+        $options = get_option('stock_sucursales_options', array());
+        $popup_id = isset($options['popup_id']) ? $options['popup_id'] : '';
+
+        // Pass data to JavaScript
+        wp_localize_script('stock-sucursales-popup', 'stockSucursalesPopup', array(
+            'hasSelectedSucursal' => !empty($selected_sucursal),
+            'popupId' => $popup_id,
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('stock_sucursales_popup')
+        ));
     }
 }
