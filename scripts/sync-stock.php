@@ -381,14 +381,10 @@ function sync_branch_stock_run($manual = false)
     }
 }
 
-// Cron: cada 5 minutos (cambiable a 10)
-add_filter('cron_schedules', function ($s) {
-    $s['five_minutes'] = ['interval' => 300, 'display' => 'Cada 5 minutos'];
-    $s['ten_minutes']  = ['interval' => 600, 'display' => 'Cada 10 minutos'];
-    return $s;
-});
+// NOTA: El cron automático de WordPress ha sido deshabilitado
+// Para programar la sincronización automática, usar cron del servidor:
+// */5 * * * * /usr/bin/php /ruta/completa/al/plugin/scripts/sync-stock-from-server.php >/dev/null 2>&1
 
-if (!wp_next_scheduled('sync_branch_stock_event')) {
-    wp_schedule_event(time() + 60, 'five_minutes', 'sync_branch_stock_event');
-}
-add_action('sync_branch_stock_event', 'sync_branch_stock_run');
+// Las funciones están disponibles para:
+// 1. Ejecución manual desde admin (botón en interfaz)
+// 2. Ejecución desde cron del servidor (sync-stock-from-server.php)
