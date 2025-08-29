@@ -1,0 +1,84 @@
+/* Stock por Sucursales - Admin Styles */
+
+.stock-sucursales-fields {
+  border: 1px solid #e5e5e5;
+  padding: 15px;
+  margin: 10px 0;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+.stock-sucursales-fields h4 {
+  margin: 0 0 15px 0;
+  color: #23282d;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 8px;
+}
+
+.stock-sucursales-fields .form-field {
+  margin-bottom: 15px;
+}
+
+.stock-sucursales-fields .form-field:last-child {
+  margin-bottom: 0;
+}
+
+.sucursal-stock-field {
+  width: 100px !important;
+}
+
+#total-calculated-stock {
+  font-size: 16px;
+  padding: 4px 8px;
+  background: #e8f4f8;
+  border-radius: 3px;
+  margin-left: 10px;
+}
+
+.stock-sucursales-fields small {
+  font-style: italic;
+  margin-top: 5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+  .stock-sucursales-fields {
+    padding: 10px;
+  }
+
+  .sucursal-stock-field {
+    width: 80px !important;
+  }
+}
+
+/* Animation for stock total updates */
+.stock-total-updated {
+  animation: highlight 0.5s ease-in-out;
+}
+
+@keyframes highlight {
+  0% {
+    background-color: #fff3cd;
+  }
+  100% {
+    background-color: #e8f4f8;
+  }
+}
+
+/* Visual feedback for stock levels */
+.sucursal-stock-field.low-stock {
+  border-color: #dc3545 !important;
+  background-color: #fff5f5;
+}
+
+.sucursal-stock-field.medium-stock {
+  border-color: #ffc107 !important;
+  background-color: #fffbf0;
+}
+
+.sucursal-stock-field.high-stock {
+  border-color: #28a745 !important;
+  background-color: #f0fff4;
+}
