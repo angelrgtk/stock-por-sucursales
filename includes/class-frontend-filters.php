@@ -72,11 +72,12 @@ class Stock_Sucursales_Frontend_Filters
             return;
         }
 
-        // Check if it's a WooCommerce product query
+        // Check if it's a WooCommerce product query or WordPress search
         $post_type = $query->get('post_type');
 
         // More specific WooCommerce detection
         $is_wc_query = false;
+        $is_search_query = false;
 
         // Direct product post type query
         if ($post_type === 'product') {
@@ -97,8 +98,32 @@ class Stock_Sucursales_Frontend_Filters
         elseif (isset($query->query_vars['wc_query']) && $query->query_vars['wc_query'] === 'product_query') {
             $is_wc_query = true;
         }
+        // WordPress native search - check if it includes products
+        elseif ($query->is_search() && !is_admin()) {
+            $is_search_query = true;
 
-        if (!$is_wc_query) {
+            // Get current post types being searched
+            $search_post_types = $query->get('post_type');
+
+            // If no specific post type is set, WordPress searches all post types by default
+            // We need to modify the query to include products and apply our stock filter
+            if (empty($search_post_types)) {
+                // Set post types to search including products
+                $query->set('post_type', array('post', 'page', 'product'));
+            } elseif (is_array($search_post_types) && in_array('product', $search_post_types)) {
+                // Products are already included in search
+                $is_search_query = true;
+            } elseif ($search_post_types === 'product') {
+                // Only searching products
+                $is_search_query = true;
+            } else {
+                // Not searching products, don't filter
+                $is_search_query = false;
+            }
+        }
+
+        // Exit if this is neither a WooCommerce query nor a search that includes products
+        if (!$is_wc_query && !$is_search_query) {
             return;
         }
 
@@ -114,10 +139,25 @@ class Stock_Sucursales_Frontend_Filters
         $products_with_stock = $this->get_products_with_stock($selected_sucursal);
 
         if (empty($products_with_stock)) {
-            // No products with stock - show none
-            $query->set('post__in', array(0));
+            // No products with stock
+            if ($is_search_query) {
+                // For search queries, exclude products from results by modifying post_type
+                $current_post_types = $query->get('post_type');
+                if (is_array($current_post_types) && in_array('product', $current_post_types)) {
+                    $filtered_post_types = array_diff($current_post_types, array('product'));
+                    if (!empty($filtered_post_types)) {
+                        $query->set('post_type', $filtered_post_types);
+                    } else {
+                        // If only products were being searched and none have stock, show nothing
+                        $query->set('post__in', array(0));
+                    }
+                }
+            } else {
+                // For WooCommerce queries, show no products
+                $query->set('post__in', array(0));
+            }
         } else {
-            // Filter to only show products with stock
+            // We have products with stock - apply the filter
             $existing_post_in = $query->get('post__in');
 
             if (!empty($existing_post_in)) {
@@ -125,7 +165,13 @@ class Stock_Sucursales_Frontend_Filters
                 $products_with_stock = array_intersect($existing_post_in, $products_with_stock);
             }
 
-            $query->set('post__in', $products_with_stock);
+            if ($is_search_query) {
+                // For search queries, we need to use a WHERE clause to filter products specifically
+                $this->add_search_product_filter($query, $products_with_stock);
+            } else {
+                // WooCommerce query - safe to use post__in
+                $query->set('post__in', $products_with_stock);
+            }
         }
     }
 
@@ -135,6 +181,35 @@ class Stock_Sucursales_Frontend_Filters
     private function get_products_with_stock($sucursal_slug)
     {
         return $this->database->get_products_with_available_stock($sucursal_slug);
+    }
+
+    /**
+     * Add product filter for search queries with multiple post types
+     */
+    private function add_search_product_filter($query, $products_with_stock)
+    {
+        // Store query hash to identify this specific query
+        $query_hash = spl_object_hash($query);
+
+        // Add the filter with a callback that removes itself after first use
+        add_filter('posts_where', function ($where, $wp_query) use ($products_with_stock, $query, $query_hash) {
+            // Only apply to our specific query
+            if ($wp_query !== $query) {
+                return $where;
+            }
+
+            global $wpdb;
+
+            if (!empty($products_with_stock)) {
+                $product_ids = implode(',', array_map('intval', $products_with_stock));
+                $where .= " AND (({$wpdb->posts}.post_type != 'product') OR ({$wpdb->posts}.post_type = 'product' AND {$wpdb->posts}.ID IN ($product_ids)))";
+            } else {
+                // No products with stock - exclude all products from search
+                $where .= " AND {$wpdb->posts}.post_type != 'product'";
+            }
+
+            return $where;
+        }, 10, 2);
     }
 
     /**
