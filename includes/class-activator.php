@@ -65,8 +65,8 @@ class Stock_Sucursales_Activator
     {
         $default_options = array(
             'sucursales' => array(
-                'stock_espana' => 'Sucursal Asunción',
-                'stock_sanber' => 'Sucursal San Bernardino'
+                'stock_espana' => 'Asunción',
+                'stock_sanber' => 'San Bernardino'
             ),
             'sync_aggregate_stock' => true,
             'show_sucursal_stock_in_product' => true
