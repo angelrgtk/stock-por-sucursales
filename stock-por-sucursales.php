@@ -4,7 +4,7 @@ Plugin Name: Stock por Sucursales
 Plugin URI: https://github.com/alemanydev/stock-por-sucursales
 Description: Plugin para gestionar el stock por sucursales de Bodega Boutique. Sistema modular y escalable para WooCommerce.
 Version: 1.0.0
-Author: https://www.linkedin.com/in/alemanydev/
+Author: Angel Alemany
 Author URI: https://www.linkedin.com/in/alemanydev/
 License: GPL2
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
